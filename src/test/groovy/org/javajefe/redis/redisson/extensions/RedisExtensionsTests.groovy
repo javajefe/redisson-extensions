@@ -3,13 +3,20 @@ package org.javajefe.redis.redisson.extensions
 import org.redisson.Redisson
 import org.redisson.api.RedissonClient
 import org.redisson.config.Config
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.spock.Testcontainers
+import spock.lang.Shared
 import spock.lang.Specification
 
 /**
  * Created by BukarevAA on 18.02.2019.
  */
+@Testcontainers
 class RedisExtensionsTests extends Specification {
 
+    @Shared
+    GenericContainer redis = new GenericContainer("redis:5.0.3")
+            .withExposedPorts(6379)
     RedissonClient redissonClient
     RedisExtensions redisExtensions
 
@@ -17,7 +24,7 @@ class RedisExtensionsTests extends Specification {
         // Instantiate the client
         Config config = new Config()
         config.useSingleServer()
-                .setAddress("redis://localhost:6379")
+                .setAddress("redis://" + redis.getContainerIpAddress() + ":" + redis.getMappedPort(6379))
                 .setDatabase(2)
         redissonClient = Redisson.create(config)
         redisExtensions = new RedisExtensions(redissonClient)
