@@ -58,4 +58,22 @@ class RedisExtensionsTests extends Specification {
         then:
             streamSize == old(streamSize) + 1000
     }
+
+    def "Batch XADD does not accept null values"() {
+        when:
+            redisExtensions.batchXADD('k', [[k: null]])
+        then:
+            IllegalArgumentException e = thrown()
+    }
+
+    def "Batch XADD checks all messages before execution"() {
+        when:
+            def stream = 'TEST:REDISSON:XADD'
+            def streamSize = redissonClient.getStream(stream).size()
+            redisExtensions.batchXADD(stream, [[k: 'v'], [k: null]])
+        then:
+            IllegalArgumentException e = thrown()
+            redissonClient.getStream(stream).size() == streamSize
+
+    }
 }

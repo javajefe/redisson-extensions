@@ -56,6 +56,9 @@ public class RedisExtensions {
         if (messages == null || messages.isEmpty()) {
             throw new IllegalArgumentException("messages are required");
         }
+        if (messages.stream().flatMap(m -> m.values().stream()).anyMatch(v -> v == null)) {
+            throw new IllegalArgumentException("null values are disallowed");
+        }
         String sha = loadedScriptIds.get(SCRIPTS.batchXADD);
         Object[] argv = messages.stream()
                 .map(m -> gson.toJson(m))

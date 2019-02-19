@@ -7,5 +7,8 @@ However, some Redis APIs were not implemented (ex. [XINFO](https://redis.io/comm
 This small library tries to implement some missing functions.
 
 ### Release notes
+##### v 0.0.2
+- Added few validations and unit tests for Batch XADD command.
+
 ##### v 0.0.1
-Implemented Batch XADD command.
+- Implemented Batch XADD command.
