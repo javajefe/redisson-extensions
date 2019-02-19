@@ -1,9 +1,6 @@
 package org.javajefe.redis.redisson.extensions;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -25,6 +22,9 @@ class Utils {
     public static String loadResource(String path) throws IOException {
         Class clazz = Utils.class;
         InputStream inputStream = clazz.getResourceAsStream(path);
+        if (inputStream == null) {
+            throw new FileNotFoundException(path);
+        }
         return readFromInputStream(inputStream);
     }
 }
