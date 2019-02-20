@@ -10,7 +10,8 @@ This small library tries to implement some missing functions.
 ##### v 0.0.2
 - Added few validations and unit tests for Batch `XADD` command.
 - Implemented `XINFO GROUPS` command.
-- Implemented `getLastDeliveredId` helper method for Redis Streams.
+- Implemented `getStreamLastDeliveredId` helper method for Redis Streams. Returns `last-delivered-id` from `XINFO GROUPS` command result.
+- Implemented `getStreamTailSize` helper method for Redis streams. Returns number of messages in the stream were not delivered to the reading group yet. 
 
 ##### v 0.0.1
 - Implemented batch `XADD` command.

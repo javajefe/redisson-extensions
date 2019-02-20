@@ -3,6 +3,7 @@ package org.javajefe.redis.redisson.extensions;
 import com.google.gson.Gson;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.StreamMessageId;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,9 @@ public class RedisExtensions {
     private static final Logger log = LoggerFactory.getLogger(RedisExtensions.class);
     private enum SCRIPTS {
 
-        batchXADD("/lua/batchXADD.lua"), XINFOgroup("/lua/XINFOgroup.lua");
+        batchXADD("/lua/batchXADD.lua"),
+        XINFO_GROUPS("/lua/XINFO_GROUPS.lua"),
+        getStreamTailSize("/lua/getStreamTailSize.lua");
 
         private String path;
 
@@ -68,7 +71,7 @@ public class RedisExtensions {
     }
 
     public Map<String, Object> XINFO_GROUPS(String key, String readGroupName) {
-        String sha = loadedScriptIds.get(SCRIPTS.XINFOgroup);
+        String sha = loadedScriptIds.get(SCRIPTS.XINFO_GROUPS);
         List<Object> result = rScript.evalSha(RScript.Mode.READ_ONLY, sha, RScript.ReturnType.MULTI,
                 Collections.singletonList(key), Collections.singletonList(readGroupName));
         Map<String, Object> info = null;
@@ -90,8 +93,18 @@ public class RedisExtensions {
         throw new IllegalArgumentException("No such reading group");
     }
 
-    public String getLastDeliveredId(String key, String readGroupName) {
+    public StreamMessageId getStreamLastDeliveredId(String key, String readGroupName) {
         Map<String, Object> info = XINFO_GROUPS(key, readGroupName);
-        return (String) info.get("last-delivered-id");
+        String lastDeliveredId = (String) info.get("last-delivered-id");
+        String[] ldi = lastDeliveredId.split("-");
+        return new StreamMessageId(Long.parseLong(ldi[0]), Long.parseLong(ldi[1]));
+    }
+
+    public long getStreamTailSize(String key, String readGroupName) {
+        StreamMessageId lastDeliveredId = getStreamLastDeliveredId(key, readGroupName);
+        String pseudoNextIdToDeliver = Long.toString(lastDeliveredId.getId0()) + "-" + Long.toString(lastDeliveredId.getId1() + 1);
+        String sha = loadedScriptIds.get(SCRIPTS.getStreamTailSize);
+        return rScript.evalSha(RScript.Mode.READ_ONLY, sha, RScript.ReturnType.VALUE,
+                Collections.singletonList(key), pseudoNextIdToDeliver);
     }
 }

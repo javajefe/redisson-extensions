@@ -114,15 +114,29 @@ class RedisExtensionsTests extends Specification {
             stream.createGroup(readGroup)
             10.times { stream.add('i', it as String) }
             def range = stream.readGroup(readGroup, consumerName, 7)
-            def lastDeliveredId = redisExtensions.getLastDeliveredId(streamName, readGroup)
+            def lastDeliveredId = redisExtensions.getStreamLastDeliveredId(streamName, readGroup)
         then:
-            lastDeliveredId == range.keySet().last() as String
+            lastDeliveredId == range.keySet().last()
     }
 
     def "getLastDeliveredId throws exception for non existing reading group"() {
         when:
-            redisExtensions.getLastDeliveredId(streamName, 'unknown')
+            redisExtensions.getStreamLastDeliveredId(streamName, 'unknown')
         then:
             IllegalArgumentException e = thrown()
+    }
+
+    def "getStreamTailSize returns number of messages never delivered to the reading group"() {
+        setup:
+            def readGroup = 'my-def-group'
+            def numberOfMessages = 10
+            def numberOfReads = 7
+        when:
+            stream.createGroup(readGroup)
+            numberOfMessages.times { stream.add('i', it as String) }
+            stream.readGroup(readGroup, 'consumer-name', numberOfReads)
+            def tailSize = redisExtensions.getStreamTailSize(streamName, readGroup)
+        then:
+            tailSize == numberOfMessages - numberOfReads
     }
 }
