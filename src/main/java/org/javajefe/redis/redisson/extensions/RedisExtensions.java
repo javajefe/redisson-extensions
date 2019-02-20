@@ -18,7 +18,7 @@ public class RedisExtensions {
     private static final Logger log = LoggerFactory.getLogger(RedisExtensions.class);
     private enum SCRIPTS {
 
-        batchXADD("/lua/batchXADD.lua");
+        batchXADD("/lua/batchXADD.lua"), XINFOgroup("/lua/XINFOgroup.lua");
 
         private String path;
 
@@ -63,7 +63,35 @@ public class RedisExtensions {
         Object[] argv = messages.stream()
                 .map(m -> gson.toJson(m))
                 .toArray();
-        rScript.evalSha(RScript.Mode.READ_ONLY, sha, RScript.ReturnType.VALUE,
+        rScript.evalSha(RScript.Mode.READ_WRITE, sha, RScript.ReturnType.VALUE,
                 Collections.singletonList(key), argv);
+    }
+
+    public Map<String, Object> XINFO_GROUPS(String key, String readGroupName) {
+        String sha = loadedScriptIds.get(SCRIPTS.XINFOgroup);
+        List<Object> result = rScript.evalSha(RScript.Mode.READ_ONLY, sha, RScript.ReturnType.MULTI,
+                Collections.singletonList(key), Collections.singletonList(readGroupName));
+        Map<String, Object> info = null;
+        for (Object el: result) {
+            List l = (List) el;
+            info = new HashMap<>();
+            for (int i = 0; i < l.size(); i += 2) {
+                String k = (String) l.get(i);
+                Object v = l.get(i + 1);
+                if ("name".equals(k) && !readGroupName.equals(v)) {
+                    break;
+                }
+                info.put(k, v);
+            }
+            if (info.containsKey("name")) {
+                return info;
+            }
+        }
+        throw new IllegalArgumentException("No such reading group");
+    }
+
+    public String getLastDeliveredId(String key, String readGroupName) {
+        Map<String, Object> info = XINFO_GROUPS(key, readGroupName);
+        return (String) info.get("last-delivered-id");
     }
 }

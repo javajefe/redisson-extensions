@@ -1,7 +1,9 @@
 package org.javajefe.redis.redisson.extensions
 
 import org.redisson.Redisson
+import org.redisson.api.RStream
 import org.redisson.api.RedissonClient
+import org.redisson.client.codec.StringCodec
 import org.redisson.config.Config
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.spock.Testcontainers
@@ -19,6 +21,8 @@ class RedisExtensionsTests extends Specification {
             .withExposedPorts(6379)
     RedissonClient redissonClient
     RedisExtensions redisExtensions
+    def streamName = 'TEST:REDISSON:STREAM'
+    RStream stream
 
     def setup() {
         // Instantiate the client
@@ -28,9 +32,14 @@ class RedisExtensionsTests extends Specification {
                 .setDatabase(2)
         redissonClient = Redisson.create(config)
         redisExtensions = new RedisExtensions(redissonClient)
+        // To create stream we have to add something into it
+        stream = redissonClient.getStream(streamName, StringCodec.INSTANCE)
+        // But we want to keep it Clear
+        stream.remove(stream.add('dummy', 'dummy'))
     }
 
     def cleanup() {
+        redissonClient.getKeys().flushdb()
         redissonClient.shutdown()
     }
 
@@ -43,37 +52,77 @@ class RedisExtensionsTests extends Specification {
 
     def "Empty message list is not allowed in Batch XADD"() {
         when:
-            redisExtensions.batchXADD('k', [])
+            redisExtensions.batchXADD(streamName, [])
         then:
             IllegalArgumentException e = thrown()
     }
 
     def "Batch XADD for 1000 messages"() {
         setup:
-            def stream = 'TEST:REDISSON:XADD'
-            def streamSize = redissonClient.getStream(stream).size()
+            def streamSize = redissonClient.getStream(streamName).size()
         when:
-            redisExtensions.batchXADD(stream, (1..1000).collect {[i: it as String]})
-            streamSize = redissonClient.getStream(stream).size()
+            redisExtensions.batchXADD(streamName, (1..1000).collect {[i: it as String]})
+            streamSize = redissonClient.getStream(streamName).size()
         then:
             streamSize == old(streamSize) + 1000
     }
 
     def "Batch XADD does not accept null values"() {
         when:
-            redisExtensions.batchXADD('k', [[k: null]])
+            redisExtensions.batchXADD(streamName, [[k: null]])
         then:
             IllegalArgumentException e = thrown()
     }
 
     def "Batch XADD checks all messages before execution"() {
         when:
-            def stream = 'TEST:REDISSON:XADD'
-            def streamSize = redissonClient.getStream(stream).size()
-            redisExtensions.batchXADD(stream, [[k: 'v'], [k: null]])
+            def streamSize = stream.size()
+            redisExtensions.batchXADD(streamName, [[k: 'v'], [k: null]])
         then:
             IllegalArgumentException e = thrown()
-            redissonClient.getStream(stream).size() == streamSize
+            stream.size() == streamSize
 
+    }
+
+    def "XINFO Group returns information about reading group"() {
+        setup:
+            def readGroup = 'my-def-group'
+        when:
+            stream.createGroup(readGroup)
+            10.times { stream.add('i', it as String) }
+            def range = stream.readGroup(readGroup, 'consumer-name', 7)
+            def info = redisExtensions.XINFO_GROUPS(streamName, readGroup)
+        then:
+            range
+            info
+            info.name == readGroup
+            info['last-delivered-id'] == range.keySet().last() as String
+    }
+
+    def "XINFO Group throws exception for non existing reading group"() {
+        when:
+            redisExtensions.XINFO_GROUPS(streamName, 'unknown')
+        then:
+            IllegalArgumentException e = thrown()
+    }
+
+    def "getLastDeliveredId returns last read id for the reading group"() {
+        setup:
+            def readGroup = 'my-def-group'
+            def consumerName = 'consumer-name'
+        when:
+            stream.createGroup(readGroup)
+            10.times { stream.add('i', it as String) }
+            def range = stream.readGroup(readGroup, consumerName, 7)
+            def lastDeliveredId = redisExtensions.getLastDeliveredId(streamName, readGroup)
+        then:
+            lastDeliveredId == range.keySet().last() as String
+    }
+
+    def "getLastDeliveredId throws exception for non existing reading group"() {
+        when:
+            redisExtensions.getLastDeliveredId(streamName, 'unknown')
+        then:
+            IllegalArgumentException e = thrown()
     }
 }
