@@ -84,6 +84,20 @@ class RedisExtensionsTests extends Specification {
 
     }
 
+    def "Batch XADD should process UTF-8 symbols correctly"() {
+        setup:
+            def readGroup = 'my-def-group'
+            def nonASCII = 'Простой тест'
+        when:
+            stream.createGroup(readGroup)
+            stream.add('s', nonASCII)
+            def range = stream.readGroup(readGroup, 'consumer-name', 1)
+        then:
+            range
+            range.size() == 1
+            range.values().any {it.s == nonASCII}
+    }
+
     def "XINFO Group returns information about reading group"() {
         setup:
             def readGroup = 'my-def-group'
