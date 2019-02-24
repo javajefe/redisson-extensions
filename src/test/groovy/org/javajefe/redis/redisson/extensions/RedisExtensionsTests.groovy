@@ -61,10 +61,11 @@ class RedisExtensionsTests extends Specification {
         setup:
             def streamSize = redissonClient.getStream(streamName).size()
         when:
-            redisExtensions.batchXADD(streamName, (1..1000).collect {[i: it as String]})
+            def ids = redisExtensions.batchXADD(streamName, (1..1000).collect {[i: it as String]})
             streamSize = redissonClient.getStream(streamName).size()
         then:
             streamSize == old(streamSize) + 1000
+            ids as Set == stream.range(ids.first(), ids.last()).keySet()
     }
 
     def "Batch XADD does not accept null values"() {

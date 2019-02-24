@@ -6,7 +6,7 @@
 
 -- KEYS[1] should be a Redis stream key
 -- ARGV list should contain message fields in JSON Object format (ex. "{\"q\": \"1\", \"w\": \"2\"}")
--- returns nil
+-- returns list of ids have been inserted into the stream
 
 -- Transforms a given table in following way:
 -- When input table is {'q': '1', 'w': '2'} then output table is {'q', '1', 'w', '2'}.
@@ -21,8 +21,11 @@ local function flattenTable(t)
 	return out
 end
 
+local ids = {}
 for _, jsonText in ipairs(ARGV) do
 	local json = cjson.decode(jsonText)
 	local messageFields = flattenTable(json)
-	redis.call('XADD', KEYS[1], '*', unpack(messageFields))
+	local id = redis.call('XADD', KEYS[1], '*', unpack(messageFields))
+	table.insert(ids, id)
 end
+return ids

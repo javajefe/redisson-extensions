@@ -8,6 +8,9 @@ This small library tries to implement some missing functions.
 
 ### Release notes
 ##### v 0.0.2
+- Batch `XADD` now returns list of `StreamMessageId`-s it has inserted into the stream
+
+##### v 0.0.2
 - Added few validations and unit tests for Batch `XADD` command.
 - Implemented `XINFO GROUPS` command.
 - Implemented `getStreamLastDeliveredId` helper method for Redis Streams. Returns `last-delivered-id` from `XINFO GROUPS` command result.

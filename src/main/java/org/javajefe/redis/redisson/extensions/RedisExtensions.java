@@ -9,7 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by BukarevAA on 18.02.2019.
@@ -52,7 +56,7 @@ public class RedisExtensions {
         this.loadedScriptIds = Collections.unmodifiableMap(scripts);
     }
 
-    public void batchXADD(String key, List<Map<String, String>> messages) {
+    public List<StreamMessageId> batchXADD(String key, List<Map<String, String>> messages) {
         if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException("key is required");
         }
@@ -66,8 +70,13 @@ public class RedisExtensions {
         Object[] argv = messages.stream()
                 .map(m -> gson.toJson(m))
                 .toArray();
-        rScript.evalSha(RScript.Mode.READ_WRITE, sha, RScript.ReturnType.VALUE,
+        List<String> ids = (List<String>) rScript.evalSha(RScript.Mode.READ_WRITE, sha, RScript.ReturnType.MULTI,
                 Collections.singletonList(key), argv);
+        return ids.stream()
+                .map(id -> {
+                    String[] idp = id.split("-");
+                    return new StreamMessageId(Long.parseLong(idp[0]), Long.parseLong(idp[1]));
+                }).collect(Collectors.toList());
     }
 
     public Map<String, Object> XINFO_GROUPS(String key, String readGroupName) {
