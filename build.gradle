@@ -1,5 +1,5 @@
-group 'org.javajefe.redis-extensions'
-version '0.0.1'
+group 'tech.javajefe'
+version '0.0.3'
 
 apply plugin: 'groovy'
 apply plugin: 'java'

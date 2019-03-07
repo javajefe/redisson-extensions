@@ -7,8 +7,9 @@ However, some Redis APIs were not implemented (ex. [XINFO](https://redis.io/comm
 This small library tries to implement some missing functions. The approach is very simple: every command is implemented as Lua script.
 
 ### Release notes
-##### v 0.0.2
+##### v 0.0.3
 - Batch `XADD` now returns list of `StreamMessageId`-s it has inserted into the stream
+- Changed Maven `groupId`
 
 ##### v 0.0.2
 - Added few validations and unit tests for Batch `XADD` command.

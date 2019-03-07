@@ -1,4 +1,4 @@
-package org.javajefe.redis.redisson.extensions;
+package tech.javajefe.redis.redisson.extensions;
 
 import com.google.gson.Gson;
 import org.redisson.api.RScript;

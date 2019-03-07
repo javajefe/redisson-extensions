@@ -1,4 +1,4 @@
-package org.javajefe.redis.redisson.extensions;
+package tech.javajefe.redis.redisson.extensions;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
