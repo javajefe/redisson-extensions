@@ -43,6 +43,17 @@ class RedisExtensionsTests extends Specification {
         redissonClient.shutdown()
     }
 
+    def "All commands stay operatable after FLUSHALL / FLUSHDB / SCRIPT FLUSH / restart / etc."() {
+        when:
+            redisExtensions.batchXADD(streamName, [[i: 1 as String]])
+            redissonClient.getScript().scriptFlush()
+            redisExtensions.batchXADD(streamName, [[i: 2 as String]])
+            def streamSize = stream.size()
+        then:
+            notThrown(Throwable)
+            streamSize == 2
+    }
+
     def "Empty key is not allowed in Batch XADD"() {
         when:
             redisExtensions.batchXADD('', [[k: 'v']])
