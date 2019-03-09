@@ -6,6 +6,17 @@ However, some Redis APIs were not implemented (ex. [XINFO](https://redis.io/comm
   
 This small library tries to implement some missing functions. The approach is very simple: every command is implemented as Lua script.
 
+### How do I use it?
+Just use it as a standard maven dependency (from Maven Central repository)
+```xml
+<dependency>
+    <groupId>tech.javajefe</groupId>
+    <artifactId>redisson-extensions</artifactId>
+    <version>0.0.4</version>
+    <type>jar</type>
+</dependency>
+```
+
 ### Release notes
 ##### v 0.0.4
 - Now `SCRIPT FLUSH`, etc. does not make consequent executions fail.
